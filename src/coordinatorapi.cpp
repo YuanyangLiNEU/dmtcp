@@ -74,6 +74,7 @@ char defaultLeaderPath[] = "/leader";
 char fullDefaultLeaderPath[] = "/leader/";
 
 // zookeeper section ends
+
 void init();
 void restart();
 void setCoordPort(int port);
@@ -99,6 +100,67 @@ void setupVirtualCoordinator(CoordinatorInfo *coordInfo,
 
 void startNewCoordinator(CoordinatorMode mode);
 void createNewConnToCoord(CoordinatorMode mode);
+
+// functions for coordinatorapi:
+static int establishConnectionZoo2Coord()
+{
+  printf("*************************\n");
+  printf("in establishConnectionZoo2Coord()\n");
+  printf("using zookeeper_port : %d\n", zookeeper_port);
+  printf("using zookeeper_host : %s\n", zookeeper_host);
+  return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
+}
+void leaderElection(zhandle_t *zh) {
+  int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
+  if (children != ZOK) {
+    fprintf(stderr,"zoo_get_children failed\n");
+  } else {
+    fprintf(stderr, "getting the avaliable coorinators");
+    char next[11];
+    int next_coordinator_id = -1;
+    next[11] = '\0';
+    for (int i = 0; i < childNodesPath.count; i++) {
+      fprintf(stderr, "%s\n", childNodesPath.data[i]);
+      strncpy(next, childNodesPath.data[i] + 12, 10);
+      printf("next coordinator is %s\n", next);
+      next_coordinator_id = atoi(next);
+      if (leaderID > next_coordinator_id) {
+        leaderID = next_coordinator_id;
+        strncpy(leaderName, childNodesPath.data[i], 30);
+      }
+      printf("leaderID now is %d\n", leaderID);
+    }
+  }
+  printf("leaderName : %s\n", leaderName);
+  int len = 255;
+  struct Stat st;
+  char full_path_name[40];
+  strcpy(full_path_name, fullDefaultLeaderPath);
+  strcat(full_path_name, leaderName);
+  children = zoo_wget(zh, full_path_name, watcherforwget, mycontext, buffer, &len, &st);
+  if (children != ZOK) {
+    fprintf(stderr, "zoo_wget in leaderElection\n");
+  } else {
+    printf("got data from buffer %s\n", buffer);
+    int i = 0;
+    for (;buffer[i] != ':'; i++){
+      zookeeper_host[i] = buffer[i];
+    }
+    zookeeper_host[i++] = '\0';
+    char port[10];
+    int j = 0;
+    while (i < strlen(buffer)) {
+      port[j++] = buffer[i];
+    }
+    port[j] = '\0';
+    zookeeper_port = atoi(port);
+    printf("*************************\n");
+    printf("Done translating zookeeper_port and zookeeper_host\n");
+    printf("zookeeper_port : %d\n", zookeeper_port);
+    printf("zookeeper_host : %s\n", zookeeper_host);
+  }
+}
+
 
 void
 eventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
