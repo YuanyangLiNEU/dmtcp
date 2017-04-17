@@ -103,7 +103,7 @@ void startNewCoordinator(CoordinatorMode mode);
 void createNewConnToCoord(CoordinatorMode mode);
 
 // functions for coordinatorapi:
-static int establishConnectionZoo2Coord()
+static void establishConnectionZoo2Coord()
 {
   printf("*************************\n");
   printf("in establishConnectionZoo2Coord()\n");
@@ -193,7 +193,7 @@ void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
 }
 
 //function for initiate the zookeeper
-void CoordinatorAPI::initiateZookeeper(){
+void CoordinatorAPI::initiateZookeeper_includingLE(){
   if (_firstZoo) {
     printf("***************************\n");
     printf("starting a new instance of zookeeper\n");
@@ -208,7 +208,6 @@ void CoordinatorAPI::initiateZookeeper(){
 
 namespace zookeeper{
   #include <zookeeper/zookeeper.h>
-  void watcherforwget(zhandle_t *zh, int type, int state, const char *path, void* context);
   void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
   {
     if (type == ZOO_SESSION_EVENT) {

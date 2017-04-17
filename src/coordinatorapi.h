@@ -29,6 +29,14 @@
 #include "shareddata.h"
 #include "syscallwrappers.h"
 
+namespace zookeeper
+{
+  #include <zookeeper/zookeeper.h>
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void* context);
+  void watcherforwget(zhandle_t *zh, int type, int state, const char *path, void* context);
+}
+
+
 namespace dmtcp
 {
 enum CoordinatorMode {
@@ -39,8 +47,16 @@ enum CoordinatorMode {
   COORD_ANY       = 0x0010
 };
 
+
 namespace CoordinatorAPI
 {
+  static void establishConnectionZoo2Coord();
+void leaderElection(zhandle_t *zh);
+void initZookeeper();
+void getCoordHostAndPortNew(const char **host, int *port);
+void initiateZookeeper_includingLE();
+
+
 
 void eventHook(DmtcpEvent_t event, DmtcpEventData_t *data);
 DmtcpPluginDescriptor_t pluginDescr();
