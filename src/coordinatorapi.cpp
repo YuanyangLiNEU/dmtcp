@@ -40,6 +40,7 @@
 #include "syscallwrappers.h"
 #include "util.h"
 #include "util.h"
+#include <zookeeper/zookeeper.h>
 
 // sem_launch is used in threadlist.cpp
 // sem_launch_first_time will be set just before pthread_create(checkpointhread)
@@ -110,6 +111,7 @@ static int establishConnectionZoo2Coord()
   printf("using zookeeper_host : %s\n", zookeeper_host);
   return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
 }
+// leader election algorithm
 void leaderElection(zhandle_t *zh) {
   int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
   if (children != ZOK) {
@@ -161,6 +163,7 @@ void leaderElection(zhandle_t *zh) {
   }
 }
 
+// new functions ended
 
 void
 eventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
@@ -584,7 +587,9 @@ createNewConnToCoord(CoordinatorMode mode)
     JASSERT(sockfd != -1) (JASSERT_ERRNO)
       .Text("Error connecting to newly started coordinator.");
   } else if (mode & COORD_ANY) {
-    sockfd = createNewSocketToCoordinator(mode);
+    // sockfd = createNewSocketToCoordinator(mode);
+    JASSERT("In COORD_ANY mode and will do establishConnectionZoo2Coord()");
+    sockfd = establishConnectionZoo2Coord();
     if (sockfd == -1) {
       JTRACE("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);
@@ -592,6 +597,7 @@ createNewConnToCoord(CoordinatorMode mode)
       JASSERT(sockfd != -1) (JASSERT_ERRNO)
         .Text("Error connecting to newly started coordinator.");
     }
+    JASSERT("Done establishConnectionZoo2Coord()");
   } else {
     JASSERT(false).Text("Not Reached");
   }
