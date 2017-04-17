@@ -70,7 +70,7 @@ int zookeeper_port;
 int leaderID = 9999;
 char leaderName[30];
 char buffer[255];
-struct String_vector childrenNodePath;
+struct String_vector childNodesPath;
 char defaultLeaderPath[] = "/leader";
 char fullDefaultLeaderPath[] = "/leader/";
 
@@ -193,7 +193,7 @@ void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
 }
 
 //function for initiate the zookeeper
-void CoordinatorAPI::initiateZookeeper_includingLE(){
+void CoordinatorAPI::initiateZookeeper(){
   if (_firstZoo) {
     printf("***************************\n");
     printf("starting a new instance of zookeeper\n");
