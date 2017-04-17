@@ -139,9 +139,10 @@ void leaderElection(zhandle_t *zh) {
   char full_path_name[40];
   strcpy(full_path_name, fullDefaultLeaderPath);
   strcat(full_path_name, leaderName);
-  children = zoo_wget(zh, full_path_name, watcherforwget, mycontext, buffer, &len, &st);
+  children = zoo_wget(zh, full_path_name, zookeeper::watcherforwget, mycontext, buffer, &len, &st);
+  buffer[strlen(buffer)] = '\0';
   if (children != ZOK) {
-    fprintf(stderr, "zoo_wget in leaderElection\n");
+    fprintf(stderr, "error !!!! zoo_wget in leaderElection\n");
   } else {
     printf("got data from buffer %s\n", buffer);
     int i = 0;
@@ -160,6 +161,120 @@ void leaderElection(zhandle_t *zh) {
     printf("Done translating zookeeper_port and zookeeper_host\n");
     printf("zookeeper_port : %d\n", zookeeper_port);
     printf("zookeeper_host : %s\n", zookeeper_host);
+  }
+}
+void initZookeeper(){
+  printf("*****************************\n");
+  printf("Starting zookeeper\n");
+    zh = zookeeper_init("127.0.0.1:2181", zookeeper::watcher_forInit, 30000, 0, 0, 0);
+    if(!zh){
+        printf("error");
+        return;
+    }
+    fprintf(stderr, "Opened zookeeper\n");  
+}
+
+
+// get the information that we need to from other znode
+void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
+{
+  printf("get new host and port\n");
+  if(_firstZoo){
+       dmtcp::initZookeeper();
+   }
+   dmtcp::leaderElection(zh);
+  _cachedHost = zookeeper_host;
+  _cachedPort = zookeeper_port;
+   *host = zookeeper_host;
+   *port = zookeeper_port;
+  _firstTime = false;
+  _firstZoo = false;
+  return;
+}
+
+//function for initiate the zookeeper
+void CoordinatorAPI::initiateZookeeper(){
+  if (_firstZoo) {
+    printf("***************************\n");
+    printf("starting a new instance of zookeeper\n");
+    dmtcp::initZookeeper();
+    dmtcp::leaderElection(zh);
+  } else {
+    //do nothing
+    printf("*************************\n");
+    printf("we have already started a zookeeper instance\n");
+  }
+}
+
+namespace zookeeper{
+  #include <zookeeper/zookeeper.h>
+  void watcherforwget(zhandle_t *zh, int type, int state, const char *path, void* context);
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
+  {
+    if (type == ZOO_SESSION_EVENT) {
+        if (state == ZOO_CONNECTED_STATE) {
+          printf("********************************\n");
+          printf("ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
+        } else if (state == ZOO_AUTH_FAILED_STATE) {
+          printf("********************************\n");
+          printf("ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+          zookeeper_close(zh);
+          exit(1);
+        } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+          printf("********************************\n");
+          printf("ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
+          zookeeper_close(zh);
+          exit(1);
+        }
+
+    }
+    printf("watcher called! \n");
+  }
+  void watcherforwget(zhandle_t *zh, int type, int state, const char *path,
+             void* context)
+  {
+    printf("*************************\n");
+    printf("Inside watcherforwget()\n");
+    dmtcp::_firstZoo = false;
+    int len, rc;
+    struct Stat st;
+    char *p = (char *)context;
+    if (type == ZOO_SESSION_EVENT) {
+        if (state == ZOO_CONNECTED_STATE) {
+          printf("********************************\n");
+          printf("In watcherforwget : ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
+            return;
+        } else if (state == ZOO_AUTH_FAILED_STATE) {
+            printf("********************************\n");
+            printf("In watcherforwget : ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+            zookeeper_close(dmtcp::zh);
+            exit(1);
+        } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+          printf("********************************\n");
+          printf("In watcherforwget : ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
+          dmtcp::leaderID = 9999;
+          dmtcp::initZookeeper();
+          dmtcp::leaderElection(dmtcp::zh);
+        }
+    } else if (type == ZOO_CHANGED_EVENT) {
+        printf("Data changed for %s \n", path);
+        len = 254;
+        //get the changed data and set an watch again
+        rc = zoo_wget(zh, path, watcherforwget , mycontext, buffer, &len, &st);
+        if (ZOK != rc){
+            printf("Problems %s %d\n", path, rc);
+        } else if (len >= 0) {
+           buffer[len] = 0;
+           printf("Path: %s changed data: %s\n", path, buffer);
+        }
+    } else if (type == ZOO_DELETED_EVENT) {
+      printf("needing a new leader\n");
+      dmtcp::leaderID = 99999;
+      dmtcp::leaderElection(dmtcp::zh);
+      //need to connect to new coordinator
+    }
+
+    printf("Watcher context %s\n", p);
   }
 }
 
