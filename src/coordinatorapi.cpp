@@ -55,7 +55,25 @@ int nsSock = -1;
 static bool _firstTime = true;
 static const char *_cachedHost = NULL;
 static int _cachedPort = 0;
+// zookeeper variables:
+static bool _firstZoo = true;
+static const char *hostPort;
+static zhandle_t *zh;
+static clientid_t myid;
+static int connected;
+static char mycontext[] = "myvalue1";
+// getting from coordinator
+char zookeeper_host[255];
+int zookeeper_port;
+// end getting host and port
+int leaderID = 9999;
+char leaderName[30];
+char buffer[255];
+struct String_vector childrenNodePath;
+char defaultLeaderPath[] = "/leader";
+char fullDefaultLeaderPath[] = "/leader/";
 
+// zookeeper section ends
 void init();
 void restart();
 void setCoordPort(int port);
