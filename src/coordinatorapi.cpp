@@ -83,7 +83,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   if (children != ZOK) {
     fprintf(stderr,"zoo_get_children failed\n");
   } else {
-    fprintf(stderr, "getting the avaliable coorinators");
+    fprintf(stderr, "getting the avaliable coordinators\n");
     char next[11];
     int next_coordinator_id = -1;
     next[11] = '\0';
@@ -112,14 +112,14 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   } else {
     printf("got data from buffer %s\n", buffer);
     int i = 0;
-    for (;buffer[i] != ':'; i++){
+    for (i = 0;buffer[i] != ':'; i++){
       zookeeper_host[i] = buffer[i];
     }
     zookeeper_host[i++] = '\0';
     char port[10];
     int j = 0;
-    while (i < strlen(buffer)) {
-      port[j++] = buffer[i];
+    for (i; i < strlen(buffer); i++, j++){
+      port[j] = buffer[i];
     }
     port[j] = '\0';
     zookeeper_port = atoi(port);
