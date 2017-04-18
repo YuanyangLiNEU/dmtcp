@@ -432,7 +432,18 @@ void DmtcpWorker::waitForCoordinatorMsg(string msgStr,
     if (msg.type == DMT_KILL_PEER) {
       JLOG(DMTCP)("Received KILL message from coordinator, exiting");
       _exit (0);
-    }
+    } else if (msg.type == DMT_COORDINATOR_DIE) {
+	  JTRACE("Received COORDINATOR_DIE message from coordinator, try to connect to new coordinator.");
+	  CoordinatorAPI::instance().connectToNewCoord();
+	  if (type == DMT_DO_SUSPEND) {
+		  continue;
+	  } else {
+		  CoordinatorAPI::instance().sendMsgToCoordinator(DmtcpMessage(DMT_OK));
+		  return;
+	  }
+
+	}
+	
     if (msg.type == DMT_UPDATE_LOGGING) {
       SharedData::setLogMask(msg.logMask);
     } else {

@@ -92,6 +92,16 @@ void SharedData::initializeHeader(const char *tmpDir,
   strcpy(sharedDataHeader->installDir, installDir);
 }
 
+void SharedData::updateHeader(DmtcpUniqueProcessId *compId,
+							  CoordinatorInfo *coordInfo,
+							  struct in_addr *localIPAddr) {
+					  
+	JASSERT(compId && coordInfo && localIPAddr);
+	memcpy(&sharedDataHeader->compId, compId, sizeof(*compId));
+    memcpy(&sharedDataHeader->coordInfo, coordInfo, sizeof (*coordInfo));
+    memcpy(&sharedDataHeader->localIPAddr, localIPAddr, sizeof (*localIPAddr));
+}
+
 bool SharedData::initialized()
 {
   return sharedDataHeader != NULL;

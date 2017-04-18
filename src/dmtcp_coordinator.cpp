@@ -396,8 +396,10 @@ void DmtcpCoordinator::handleUserCommand(char cmd, DmtcpMessage* reply /*= NULL*
   }
   case 'q': case 'Q':
   {
-    JNOTE ( "killing all connected peers and quitting ..." );
-    broadcastMessage ( DMT_KILL_PEER );
+    //JNOTE("killing all connected peers and quitting ...");
+	JNOTE("coordinator dies, send coor die msg to all connected peers and quitting ...");
+    //broadcastMessage(DMT_KILL_PEER);
+	broadcastMessage(DMT_COORDINATOR_DIE);
     JASSERT_STDERR << "DMTCP coordinator exiting... (per request)\n";
     for (size_t i = 0; i < clients.size(); i++) {
       clients[i]->sock().close();
@@ -409,10 +411,12 @@ void DmtcpCoordinator::handleUserCommand(char cmd, DmtcpMessage* reply /*= NULL*
     break;
   }
   case 'k': case 'K':
-    JNOTE ( "Killing all connected Peers..." );
-    //FIXME: What happens if a 'k' command is followed by a 'c' command before
-    //       the *real* broadcast takes place?         --Kapil
-    broadcastMessage ( DMT_KILL_PEER );
+    JNOTE("Killing all connected Peers...");
+
+    // FIXME: What happens if a 'k' command is followed by a 'c' command before
+    // the *real* broadcast takes place?         --Kapil
+    //broadcastMessage(DMT_KILL_PEER);
+	broadcastMessage(DMT_COORDINATOR_DIE);
     break;
   case 'h': case 'H': case '?':
     JASSERT_STDERR << theHelpMessage;
@@ -497,18 +501,24 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::RUNNING
        && newState == WorkerState::SUSPENDED )
   {
+	JTRACE("sleep 4 seconds after suspended");
+	sleep(4);
     JNOTE ( "locking all nodes" );
     broadcastMessage(DMT_DO_FD_LEADER_ELECTION, getStatus().numPeers );
   }
   if ( oldState == WorkerState::SUSPENDED
        && newState == WorkerState::FD_LEADER_ELECTION )
   {
+	JTRACE("sleep 4 seconds after fd leader election.");
+	sleep(4);
     JNOTE ( "draining all nodes" );
     broadcastMessage ( DMT_DO_DRAIN );
   }
   if ( oldState == WorkerState::FD_LEADER_ELECTION
        && newState == WorkerState::DRAINED )
   {
+	JTRACE("sleep 4 seconds after drained.");
+	sleep(4);
     JNOTE ( "checkpointing all nodes" );
     broadcastMessage ( DMT_DO_CHECKPOINT );
   }
@@ -564,6 +574,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::DRAINED
        && newState == WorkerState::CHECKPOINTED )
   {
+	JTRACE("sleep 4 seconds after checkpointed.");
+	sleep(4);
     RestartScript::writeScript(ckptDir,
                                uniqueCkptFilenames,
                                ckptTimeStamp,
@@ -585,6 +597,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::RESTARTING
        && newState == WorkerState::CHECKPOINTED )
   {
+	JTRACE("sleep 4 seconds after checkpointed.");
+	sleep(4);
     JTIMER_STOP ( restart );
 
     JNOTE ( "refilling all nodes (after checkpoint)" );
@@ -594,6 +608,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
        && newState == WorkerState::REFILLED )
 #endif
   {
+	JTRACE("sleep 4 seconds after refiled.");
+	sleep(4);
     JNOTE ( "restarting all nodes" );
     broadcastMessage ( DMT_DO_RESUME );
 
@@ -931,10 +947,13 @@ void DmtcpCoordinator::onConnect()
   }
 
   if (killInProgress) {
-    JNOTE("Connection request received in the middle of killing computation. "
-          "Sending it the kill message.");
+    //JNOTE("Connection request received in the middle of killing computation. "
+    //      "Sending it the kill message.");
+	JNOTE("Connection request received in the middle of killing computation. "
+          "Sending it the coordinator die message.");
     DmtcpMessage msg;
-    msg.type = DMT_KILL_PEER;
+    //msg.type = DMT_KILL_PEER;
+	msg.type = DMT_COORDINATOR_DIE;
     remote << msg;
     remote.close();
     return;
@@ -962,8 +981,9 @@ void DmtcpCoordinator::onConnect()
     _virtualPidToClientMap[client->virtualPid()] = client;
     isRestarting = true;
   } else if (hello_remote.type == DMT_NEW_WORKER) {
-    JASSERT(hello_remote.state == WorkerState::RUNNING ||
-            hello_remote.state == WorkerState::UNKNOWN);
+	  // no need to check this state
+    //JASSERT(hello_remote.state == WorkerState::RUNNING ||
+    //        hello_remote.state == WorkerState::UNKNOWN);
     JASSERT(hello_remote.virtualPid == -1);
     client->virtualPid(getNewVirtualPid());
     if (!validateNewWorkerProcess(hello_remote, remote, client,
@@ -1120,8 +1140,8 @@ bool DmtcpCoordinator::validateNewWorkerProcess(
   hello_local.virtualPid = client->virtualPid();
   ComputationStatus s = getStatus();
 
-  JASSERT(hello_remote.state == WorkerState::RUNNING ||
-          hello_remote.state == WorkerState::UNKNOWN) (hello_remote.state);
+  //JASSERT(hello_remote.state == WorkerState::RUNNING ||
+  //        hello_remote.state == WorkerState::UNKNOWN) (hello_remote.state);
 
   if (workersRunningAndSuspendMsgSent == true) {
     /* Worker trying to connect after SUSPEND message has been sent.
@@ -1239,7 +1259,7 @@ void DmtcpCoordinator::broadcastMessage(DmtcpMessageType type, int numPeers)
     msg.extraBytes = globalCkptDir.length() + 1;
   }
 
-  if (msg.type == DMT_KILL_PEER && clients.size() > 0) {
+  if (msg.type == DMT_COORDINATOR_DIE && clients.size() > 0) {
     killInProgress = true;
   } else if (msg.type == DMT_UPDATE_LOGGING) {
     msg.logMask = mask;

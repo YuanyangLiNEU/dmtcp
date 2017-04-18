@@ -91,6 +91,7 @@ namespace dmtcp
                                    const char *host,
                                    int port,
                                    struct in_addr  *localIP);
+	  void connectToNewCoord();
       void closeConnection() { _coordinatorSocket.close(); }
 
       //jalib::JSocket& coordinatorSocket() { return _coordinatorSocket; }
@@ -141,3 +142,4 @@ namespace dmtcp
 }
 
 #endif
+

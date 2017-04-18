@@ -144,6 +144,9 @@ namespace dmtcp {
                           DmtcpUniqueProcessId *compId,
                           CoordinatorInfo *coordInfo,
                           struct in_addr *localIP);
+	void updateHeader(DmtcpUniqueProcessId *compId,
+					  CoordinatorInfo *coordInfo,
+					  struct in_addr *localIP);
 
     bool isSharedDataRegion(void *addr);
     void prepareForCkpt();

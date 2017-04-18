@@ -837,6 +837,41 @@ void CoordinatorAPI::connectToCoordOnStartup(CoordinatorMode mode,
   memcpy(localIP, &hello_remote.ipAddr, sizeof hello_remote.ipAddr);
 }
 
+void
+CoordinatorAPI::connectToNewCoord()
+{
+  JTRACE("starting connecting to new coordinator");
+  string progname = jalib::Filesystem::GetProgramName();
+  string host = "localhost";
+  int port = 5555;
+  int sockfd = jalib::JClientSocket(host.c_str(), port).sockfd();
+  Util::changeFd(sockfd, PROTECTED_COORD_FD);
+  
+  JTRACE("sending coordinator handshake")(UniquePid::ThisProcess());
+  DmtcpMessage hello_local(DMT_NEW_WORKER);
+  hello_local.virtualPid = -1;
+
+  DmtcpMessage hello_remote = sendRecvHandshake(hello_local, progname);
+
+  JASSERT(hello_remote.virtualPid != -1);
+  JTRACE("Got virtual pid from coordinator") (hello_remote.virtualPid);
+
+  pid_t ppid = getppid();
+  Util::setVirtualPidEnvVar(hello_remote.virtualPid, ppid, ppid);
+  
+  // reset shared data header
+  DmtcpUniqueProcessId compId = hello_remote.compGroup.upid();
+  CoordinatorInfo coordInfo;
+  coordInfo.id = hello_remote.from.upid();
+  coordInfo.timeStamp = hello_remote.coordTimeStamp;
+  coordInfo.addrLen = sizeof (coordInfo.addr);
+  struct in_addr  localIP;
+  memcpy(&localIP, &hello_remote.ipAddr, sizeof hello_remote.ipAddr);
+  SharedData::updateHeader(&compId, &coordInfo, &localIP);
+  
+  //Util::writeCoordPortToFile(port, thePortFile.c_str());
+}
+
 void CoordinatorAPI::createNewConnectionBeforeFork(string& progname)
 {
   JASSERT(!noCoordinator())

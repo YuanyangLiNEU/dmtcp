@@ -68,6 +68,7 @@ namespace dmtcp
 #endif
     DMT_DO_REFILL,           // when coordinator wants slave to refill buffers
     DMT_KILL_PEER,           // send kill message to peer
+	DMT_COORDINATOR_DIE,       // send coordinator die message to peer
 
     DMT_REGISTER_NAME_SERVICE_DATA,
     DMT_REGISTER_NAME_SERVICE_DATA_SYNC,

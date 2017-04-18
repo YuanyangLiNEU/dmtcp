@@ -117,6 +117,7 @@ ostream& dmtcp::operator << ( dmtcp::ostream& o, const DmtcpMessageType & s )
       OSHIFTPRINTF ( DMT_DO_REFILL )
       OSHIFTPRINTF ( DMT_DO_RESUME )
       OSHIFTPRINTF ( DMT_KILL_PEER )
+	  OSHIFTPRINTF ( DMT_COORDINATOR_DIE)
 
 #ifdef COORD_NAMESERVICE
       OSHIFTPRINTF ( DMT_REGISTER_NAME_SERVICE_DATA )
