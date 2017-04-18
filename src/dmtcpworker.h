@@ -52,6 +52,8 @@ namespace dmtcp
       static void restoreVirtualPidTable();
       static void postRestart();
 
+      static void startZookpeer();
+
       static void resetOnFork();
       static void cleanupWorker();
 

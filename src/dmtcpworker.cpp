@@ -586,3 +586,9 @@ void DmtcpWorker::eventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
     dmtcp_event_hook(event, data);
   }
 }
+
+void DmtcpWorker::startZookpeer()
+{
+  JTRACE("starting the zookeeper instance in Worker process");
+  CoordinatorAPI::instance().initiateZookeeper_includingLE();
+}

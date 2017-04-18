@@ -546,12 +546,16 @@ int main ( int argc, char** argv )
   struct in_addr localIPAddr;
   int port = (portStr ? jalib::StringToInt(portStr) : UNINITIALIZED_PORT);
   // Initialize host and port now.  Will be used in low-level functions.
-  Util::getCoordHostAndPort(allowedModes, host, &port);
+  // Util::getCoordHostAndPort(allowedModes, host, &port);
+  const char* myhost = host.c_str();
+  CoordinatorAPI::getCoordHostAndPortNew(&myhost, &port);
+  JTRACE("transfering host and port to the zookeeper using getCoordHostAndPortNew()");
   CoordinatorAPI::instance().connectToCoordOnStartup(allowedModes, argv[0],
                                                      &compId, &coordInfo,
                                                      &localIPAddr);
   // If port was 0, we'll get new random port when coordinator starts up.
   Util::getCoordHostAndPort(allowedModes, host, &port);
+  JTRACE("writing host and port into the file, which are : ")(thePortFile.c_str());
   Util::writeCoordPortToFile(port, thePortFile.c_str());
 
   string installDir =
