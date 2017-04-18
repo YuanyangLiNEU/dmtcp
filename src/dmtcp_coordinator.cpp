@@ -80,6 +80,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <zookeeper/zookeeper.h>
 #undef min
 #undef max
 
@@ -150,7 +151,7 @@ static int blockUntilDoneRemote = -1;
 static uint32_t mask = 0;
 
 static DmtcpCoordinator prog;
-
+static zhandle_t *zh;
 /* The coordinator can receive a second checkpoint request while processing the
  * first one.  If the second request comes at a point where the coordinator has
  * broadcast DMT_DO_SUSPEND message but the workers haven't replied, the
@@ -214,6 +215,71 @@ static pid_t _nextVirtualPid = INITIAL_VIRTUAL_PID;
 
 static int theNextClientNumber = 1;
 vector<CoordClient*> clients;
+
+
+void zktest_string_completion (int RC, const  char * name, const  void * Data)
+{
+    if (! RC) {
+        fprintf (stderr, "znode created =%s\n" , name);
+    }
+}
+
+int create_ephemeral_sequential_node(const char *zookeeper_host, int zookeeper_port){
+    // usleep(10);
+  char des[200];
+  strcpy(des, zookeeper_host);
+  strcat(des, ":");
+  char str_zookeeper_port[10];
+  sprintf(str_zookeeper_port, "%d", zookeeper_port);
+  printf("zookeeper information : %s\n", des);
+  strcat(des, str_zookeeper_port);
+  char leaderName[] = "leader/";
+  int rc = zoo_acreate(zh, leaderName, "myvalue1", 9, &ZOO_OPEN_ACL_UNSAFE, 0, zktest_string_completion, NULL);
+  char master_znode_base_path[] = "/leader/dmtcp_coord_";
+  rc = zoo_acreate(zh, master_znode_base_path, des, strlen(des),
+  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, 
+  zktest_string_completion, NULL);
+  if(rc == ZOK){
+      printf("creating a node with my data \n");
+      return 1;
+  }else{
+      fprintf(stderr, "Error in creating znode %d\n", rc);  
+      return 0;
+  }
+}
+void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
+{
+  if (type == ZOO_SESSION_EVENT) {
+      if (state == ZOO_CONNECTED_STATE) {
+        printf("********************************\n");
+        printf("ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
+      } else if (state == ZOO_AUTH_FAILED_STATE) {
+        printf("********************************\n");
+        printf("ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+        zookeeper_close(zh);
+        exit(1);
+      } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+        printf("********************************\n");
+        printf("ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
+        zookeeper_close(zh);
+        exit(1);
+      }
+
+  }
+  printf("watcher called! \n");
+}
+
+void initZookeeper(){
+  printf("*****************************\n");
+  printf("Starting zookeeper\n");
+    zh = zookeeper_init("127.0.0.1:2181", watcher, 30000, 0, 0, 0);
+    if(!zh){
+        printf("error");
+        return;
+    }
+    fprintf(stderr, "Opened zookeeper\n");  
+}
+
 
 CoordClient::CoordClient(const jalib::JSocket& sock,
                          const struct sockaddr_storage *addr,
@@ -1595,6 +1661,12 @@ int main ( int argc, char** argv )
       fprintf(stderr, "%d", theCheckpointInterval);
     fprintf(stderr, "\n    Exit on last client: %d\n", exitOnLast);
   }
+  initZookeeper();
+  const char* hostname = coordHostname.c_str();
+  create_ephemeral_sequential_node(hostname, thePort);
+  printf("******************************************\n");
+  printf("got hostname : %s\n", hostname);
+  printf("got port %d\n", thePort);
 #endif
 
   if (daemon) {
