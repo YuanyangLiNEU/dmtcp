@@ -28,6 +28,14 @@
 #include "shareddata.h"
 #include "../jalib/jsocket.h"
 #include "../jalib/jalloc.h"
+#include <zookeeper/zookeeper.h>
+
+namespace zookeeper
+{
+  #include <zookeeper/zookeeper.h>
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void* context);
+  void watcherforwget(zhandle_t *zh, int type, int state, const char *path, void* context);
+}
 
 namespace dmtcp
 {
@@ -38,7 +46,6 @@ namespace dmtcp
     COORD_NONE      = 0x0004,
     COORD_ANY       = 0x0010
   };
-
   class CoordinatorAPI
   {
     public:
@@ -49,6 +56,15 @@ namespace dmtcp
 #endif
       CoordinatorAPI (void) : _coordinatorSocket(-1), _nsSock(-1) {}
       // Use default destructor
+
+
+      static int establishConnectionZoo2Coord();
+      void leaderElection(zhandle_t *zh);
+      void initZookeeper();
+      void getCoordHostAndPortNew(const char **host, int *port);
+      void initiateZookeeper_includingLE();
+
+
 
       static CoordinatorAPI& instance();
       static void init();

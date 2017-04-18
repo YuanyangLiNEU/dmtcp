@@ -109,22 +109,22 @@ __d_libdir__libdmtcp_so_SOURCES = dmtcpworker.cpp threadsync.cpp \
 		      dmtcpplugin.cpp popen.cpp syslogwrappers.cpp \
 		      dmtcp_dlsym.cpp
 
-__d_libdir__libdmtcp_so_LDFLAGS = -shared -Xlinker -znow
+__d_libdir__libdmtcp_so_LDFLAGS = -shared -Xlinker -znow -lzookeeper_mt
 
 # Note that an ELF object uses libsyscallsreal.a or libnohijack.a
 #  but not both.  libnohijack.a has stub definitions for same symbols.
 __d_libdir__libdmtcp_so_LDADD = libdmtcpinternal.a libjalib.a \
 				libsyscallsreal.a mtcp/libmtcp.a \
-				-ldl -lpthread -lrt
+				-ldl -lpthread -lrt -lzookeeper_mt
 
 __d_bindir__dmtcp_coordinator_LDADD = libdmtcpinternal.a libjalib.a \
-			  libnohijack.a -lpthread -lrt
+			  libnohijack.a -lpthread -lrt -lzookeeper_mt
 __d_bindir__dmtcp_launch_LDADD  = libdmtcpinternal.a libjalib.a \
-			  libnohijack.a -ldl -lpthread -lrt
+			  libnohijack.a -ldl -lpthread -lrt -lzookeeper_mt
 __d_bindir__dmtcp_restart_LDADD     = libdmtcpinternal.a libjalib.a \
-			  libnohijack.a -lpthread -lrt -ldl
+			  libnohijack.a -lpthread -lrt -ldl -lzookeeper_mt
 __d_bindir__dmtcp_command_LDADD     = libdmtcpinternal.a libjalib.a \
-			  libnohijack.a -lpthread -lrt -ldl
+			  libnohijack.a -lpthread -lrt -ldl -lzookeeper_mt
 
 __d_bindir__dmtcp_launch_SOURCES = dmtcp_launch.cpp
 

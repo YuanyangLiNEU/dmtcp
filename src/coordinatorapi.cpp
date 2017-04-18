@@ -39,13 +39,210 @@
 #include  "../jalib/jfilesystem.h"
 #include <fcntl.h>
 #include <semaphore.h> // for sem_post(&sem_launch)
-
+#include <zookeeper/zookeeper.h>
 // sem_launch is used in threadlist.cpp
 // sem_launch_first_time will be set just before pthread_create(checkpointhread)
 LIB_PRIVATE bool sem_launch_first_time = false;
 LIB_PRIVATE sem_t sem_launch;
 
 using namespace dmtcp;
+
+
+// zookeeper variables:
+static bool _firstZoo = true;
+static const char *hostPort;
+static zhandle_t *zh;
+static clientid_t myid;
+static int connected;
+static char mycontext[] = "myvalue1";
+// getting from coordinator
+char zookeeper_host[255];
+int zookeeper_port;
+// end getting host and port
+int leaderID = 9999;
+char leaderName[30];
+char buffer[255];
+struct String_vector childNodesPath;
+char defaultLeaderPath[] = "/leader";
+char fullDefaultLeaderPath[] = "/leader/";
+
+// zookeeper section ends
+
+// functions for coordinatorapi:
+static int establishConnectionZoo2Coord()
+{
+  printf("*************************\n");
+  printf("in establishConnectionZoo2Coord()\n");
+  printf("using zookeeper_port : %d\n", zookeeper_port);
+  printf("using zookeeper_host : %s\n", zookeeper_host);
+  return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
+}
+// leader election algorithm
+void leaderElection(zhandle_t *zh) {
+  int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
+  if (children != ZOK) {
+    fprintf(stderr,"zoo_get_children failed\n");
+  } else {
+    fprintf(stderr, "getting the avaliable coorinators");
+    char next[11];
+    int next_coordinator_id = -1;
+    next[11] = '\0';
+    for (int i = 0; i < childNodesPath.count; i++) {
+      fprintf(stderr, "%s\n", childNodesPath.data[i]);
+      strncpy(next, childNodesPath.data[i] + 12, 10);
+      printf("next coordinator is %s\n", next);
+      next_coordinator_id = atoi(next);
+      if (leaderID > next_coordinator_id) {
+        leaderID = next_coordinator_id;
+        strncpy(leaderName, childNodesPath.data[i], 30);
+      }
+      printf("leaderID now is %d\n", leaderID);
+    }
+  }
+  printf("leaderName : %s\n", leaderName);
+  int len = 255;
+  struct Stat st;
+  char full_path_name[40];
+  strcpy(full_path_name, fullDefaultLeaderPath);
+  strcat(full_path_name, leaderName);
+  children = zoo_wget(zh, full_path_name, zookeeper::watcherforwget, mycontext, buffer, &len, &st);
+  buffer[strlen(buffer)] = '\0';
+  if (children != ZOK) {
+    fprintf(stderr, "error !!!! zoo_wget in leaderElection\n");
+  } else {
+    printf("got data from buffer %s\n", buffer);
+    int i = 0;
+    for (;buffer[i] != ':'; i++){
+      zookeeper_host[i] = buffer[i];
+    }
+    zookeeper_host[i++] = '\0';
+    char port[10];
+    int j = 0;
+    while (i < strlen(buffer)) {
+      port[j++] = buffer[i];
+    }
+    port[j] = '\0';
+    zookeeper_port = atoi(port);
+    printf("*************************\n");
+    printf("Done translating zookeeper_port and zookeeper_host\n");
+    printf("zookeeper_port : %d\n", zookeeper_port);
+    printf("zookeeper_host : %s\n", zookeeper_host);
+  }
+}
+void initZookeeper(){
+  printf("*****************************\n");
+  printf("Starting zookeeper\n");
+    zh = zookeeper_init("127.0.0.1:2181", zookeeper::watcher, 30000, 0, 0, 0);
+    if(!zh){
+        printf("error");
+        return;
+    }
+    fprintf(stderr, "Opened zookeeper\n");  
+}
+
+
+// get the information that we need to from other znode
+void getCoordHostAndPortNew(const char **host, int *port)
+{
+  printf("get new host and port\n");
+  if(_firstZoo){
+       initZookeeper();
+   }
+   leaderElection(zh);;
+   *host = zookeeper_host;
+   *port = zookeeper_port;
+  _firstZoo = false;
+  return;
+}
+
+//function for initiate the zookeeper
+void initiateZookeeper_includingLE(){
+  if (_firstZoo) {
+    printf("***************************\n");
+    printf("starting a new instance of zookeeper\n");
+    initZookeeper();
+    leaderElection(zh);
+  } else {
+    //do nothing
+    printf("*************************\n");
+    printf("we have already started a zookeeper instance\n");
+  }
+}
+namespace zookeeper{
+  #include <zookeeper/zookeeper.h>
+  void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
+  {
+    if (type == ZOO_SESSION_EVENT) {
+        if (state == ZOO_CONNECTED_STATE) {
+          printf("********************************\n");
+          printf("ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
+        } else if (state == ZOO_AUTH_FAILED_STATE) {
+          printf("********************************\n");
+          printf("ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+          zookeeper_close(zh);
+          exit(1);
+        } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+          printf("********************************\n");
+          printf("ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
+          zookeeper_close(zh);
+          exit(1);
+        }
+
+    }
+    printf("watcher called! \n");
+  }
+  void watcherforwget(zhandle_t *zh, int type, int state, const char *path,
+             void* context)
+  {
+    printf("*************************\n");
+    printf("Inside watcherforwget()\n");
+    _firstZoo = false;
+    int len, rc;
+    struct Stat st;
+    char *p = (char *)context;
+    if (type == ZOO_SESSION_EVENT) {
+        if (state == ZOO_CONNECTED_STATE) {
+          printf("********************************\n");
+          printf("In watcherforwget : ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
+            return;
+        } else if (state == ZOO_AUTH_FAILED_STATE) {
+            printf("********************************\n");
+            printf("In watcherforwget : ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+            zookeeper_close(zh);
+            exit(1);
+        } else if (state == ZOO_EXPIRED_SESSION_STATE) {
+          printf("********************************\n");
+          printf("In watcherforwget : ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
+          leaderID = 9999;
+          initZookeeper();
+          leaderElection(zh);
+        }
+    } else if (type == ZOO_CHANGED_EVENT) {
+        printf("Data changed for %s \n", path);
+        len = 254;
+        //get the changed data and set an watch again
+        rc = zoo_wget(zh, path, watcherforwget , mycontext, buffer, &len, &st);
+        if (ZOK != rc){
+            printf("Problems %s %d\n", path, rc);
+        } else if (len >= 0) {
+           buffer[len] = 0;
+           printf("Path: %s changed data: %s\n", path, buffer);
+        }
+    } else if (type == ZOO_DELETED_EVENT) {
+      printf("needing a new leader\n");
+      leaderID = 99999;
+      leaderElection(zh);
+      //need to connect to new coordinator
+    }
+
+    printf("Watcher context %s\n", p);
+  }
+}
+// new functions ended
+
+
+
+
 
 void dmtcp_CoordinatorAPI_EventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
 {
@@ -533,7 +730,9 @@ void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
     JASSERT(_coordinatorSocket.isValid()) (JASSERT_ERRNO)
       .Text("Error connecting to newly started coordinator.");
   } else if (mode & COORD_ANY) {
-    _coordinatorSocket = createNewSocketToCoordinator(mode);
+    // _coordinatorSocket = createNewSocketToCoordinator(mode);
+    JASSERT("In COORD_ANY mode and will do establishConnectionZoo2Coord()");
+    _coordinatorSocket = establishConnectionZoo2Coord();
     if (!_coordinatorSocket.isValid()) {
       JLOG(DMTCP)("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);
@@ -541,6 +740,7 @@ void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
       JASSERT(_coordinatorSocket.isValid()) (JASSERT_ERRNO)
         .Text("Error connecting to newly started coordinator.");
     }
+    JASSERT("Done establishConnectionZoo2Coord()");
   } else {
     JASSERT(false) .Text("Not Reached");
   }
