@@ -69,14 +69,14 @@ char fullDefaultLeaderPath[] = "/leader/";
 // zookeeper section ends
 
 // functions for coordinatorapi:
-static int establishConnectionZoo2Coord()
-{
-  printf("*************************\n");
-  printf("in establishConnectionZoo2Coord()\n");
-  printf("using zookeeper_port : %d\n", zookeeper_port);
-  printf("using zookeeper_host : %s\n", zookeeper_host);
-  return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
-}
+// static int establishConnectionZoo2Coord()
+// {
+//   printf("*************************\n");
+//   printf("in establishConnectionZoo2Coord()\n");
+//   printf("using zookeeper_port : %d\n", zookeeper_port);
+//   printf("using zookeeper_host : %s\n", zookeeper_host);
+//   return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
+// }
 // leader election algorithm
 void leaderElection(zhandle_t *zh) {
   int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
@@ -730,9 +730,9 @@ void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
     JASSERT(_coordinatorSocket.isValid()) (JASSERT_ERRNO)
       .Text("Error connecting to newly started coordinator.");
   } else if (mode & COORD_ANY) {
-    // _coordinatorSocket = createNewSocketToCoordinator(mode);
+    _coordinatorSocket = createNewSocketToCoordinator(mode);
     JASSERT("In COORD_ANY mode and will do establishConnectionZoo2Coord()");
-    _coordinatorSocket = establishConnectionZoo2Coord();
+    // _coordinatorSocket = establishConnectionZoo2Coord();
     if (!_coordinatorSocket.isValid()) {
       JLOG(DMTCP)("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);

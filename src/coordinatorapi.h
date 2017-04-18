@@ -58,7 +58,7 @@ namespace dmtcp
       // Use default destructor
 
 
-      static int establishConnectionZoo2Coord();
+      // static int establishConnectionZoo2Coord();
       void leaderElection(zhandle_t *zh);
       void initZookeeper();
       void getCoordHostAndPortNew(const char **host, int *port);

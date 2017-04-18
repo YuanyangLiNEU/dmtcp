@@ -109,7 +109,7 @@ __d_libdir__libdmtcp_so_SOURCES = dmtcpworker.cpp threadsync.cpp \
 		      dmtcpplugin.cpp popen.cpp syslogwrappers.cpp \
 		      dmtcp_dlsym.cpp
 
-__d_libdir__libdmtcp_so_LDFLAGS = -shared -Xlinker -znow -lzookeeper_mt
+__d_libdir__libdmtcp_so_LDFLAGS = -shared -Xlinker -znow
 
 # Note that an ELF object uses libsyscallsreal.a or libnohijack.a
 #  but not both.  libnohijack.a has stub definitions for same symbols.
