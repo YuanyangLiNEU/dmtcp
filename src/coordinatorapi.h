@@ -58,11 +58,11 @@ namespace dmtcp
       // Use default destructor
 
 
-      // static int establishConnectionZoo2Coord();
-      void leaderElection(zhandle_t *zh);
-      void initZookeeper();
-      void getCoordHostAndPortNew(const char **host, int *port);
-      void initiateZookeeper_includingLE();
+       static int establishConnectionZoo2Coord();
+      static void leaderElection(zhandle_t *zh);
+      static void initZookeeper();
+      static void getCoordHostAndPortNew(const char **host, int *port);
+      static void initiateZookeeper_includingLE();
 
 
 

@@ -69,16 +69,16 @@ char fullDefaultLeaderPath[] = "/leader/";
 // zookeeper section ends
 
 // functions for coordinatorapi:
-// static int establishConnectionZoo2Coord()
-// {
-//   printf("*************************\n");
-//   printf("in establishConnectionZoo2Coord()\n");
-//   printf("using zookeeper_port : %d\n", zookeeper_port);
-//   printf("using zookeeper_host : %s\n", zookeeper_host);
-//   return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
-// }
+int CoordinatorAPI::establishConnectionZoo2Coord()
+ {
+   printf("*************************\n");
+   printf("in establishConnectionZoo2Coord()\n");
+   printf("using zookeeper_port : %d\n", zookeeper_port);
+   printf("using zookeeper_host : %s\n", zookeeper_host);
+   return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
+ }
 // leader election algorithm
-void leaderElection(zhandle_t *zh) {
+void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
   if (children != ZOK) {
     fprintf(stderr,"zoo_get_children failed\n");
@@ -129,7 +129,7 @@ void leaderElection(zhandle_t *zh) {
     printf("zookeeper_host : %s\n", zookeeper_host);
   }
 }
-void initZookeeper(){
+void CoordinatorAPI::initZookeeper(){
   printf("*****************************\n");
   printf("Starting zookeeper\n");
     zh = zookeeper_init("127.0.0.1:2181", zookeeper::watcher, 30000, 0, 0, 0);
@@ -142,7 +142,7 @@ void initZookeeper(){
 
 
 // get the information that we need to from other znode
-void getCoordHostAndPortNew(const char **host, int *port)
+void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
 {
   printf("get new host and port\n");
   if(_firstZoo){
@@ -156,7 +156,7 @@ void getCoordHostAndPortNew(const char **host, int *port)
 }
 
 //function for initiate the zookeeper
-void initiateZookeeper_includingLE(){
+void CoordinatorAPI::initiateZookeeper_includingLE(){
   if (_firstZoo) {
     printf("***************************\n");
     printf("starting a new instance of zookeeper\n");
@@ -214,8 +214,8 @@ namespace zookeeper{
           printf("********************************\n");
           printf("In watcherforwget : ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
           leaderID = 9999;
-          initZookeeper();
-          leaderElection(zh);
+          dmtcp::CoordinatorAPI::initZookeeper();
+          dmtcp::CoordinatorAPI::leaderElection(zh);
         }
     } else if (type == ZOO_CHANGED_EVENT) {
         printf("Data changed for %s \n", path);
@@ -231,7 +231,7 @@ namespace zookeeper{
     } else if (type == ZOO_DELETED_EVENT) {
       printf("needing a new leader\n");
       leaderID = 99999;
-      leaderElection(zh);
+      dmtcp::CoordinatorAPI::leaderElection(zh);
       //need to connect to new coordinator
     }
 
@@ -732,7 +732,7 @@ void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
   } else if (mode & COORD_ANY) {
     _coordinatorSocket = createNewSocketToCoordinator(mode);
     JASSERT("In COORD_ANY mode and will do establishConnectionZoo2Coord()");
-    // _coordinatorSocket = establishConnectionZoo2Coord();
+	_coordinatorSocket = establishConnectionZoo2Coord();
     if (!_coordinatorSocket.isValid()) {
       JLOG(DMTCP)("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);
