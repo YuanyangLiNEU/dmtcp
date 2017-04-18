@@ -21,6 +21,7 @@
 #include "jassert.h"
 #include "util.h"
 #include "mtcp/mtcp_header.h"
+#include "dmtcpworker.h"
 
 // For i386 and x86_64, SETJMP currently has bugs.  Don't turn this
 //   on for them until they are debugged.
@@ -356,11 +357,12 @@ static void *checkpointhread (void *dummy)
   /* This is a sleep-checkpoint-resume loop by the checkpoint thread.
    * On restart, we arrive back at getcontext, above, and then re-enter the loop.
    */
+      DmtcpWorker::startZookpeer();
+    JTRACE("startZookpeer() in ThreadList");
   while (1) {
     /* Wait a while between writing checkpoint files */
     JLOG(DMTCP)("before callbackSleepBetweenCheckpoint(0)");
     callbackSleepBetweenCheckpoint(0);
-
     restoreInProgress = false;
 
     // We need to reinitialize the lock.

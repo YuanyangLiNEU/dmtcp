@@ -231,21 +231,19 @@ int create_ephemeral_sequential_node(const char *zookeeper_host, int zookeeper_p
   strcat(des, ":");
   char str_zookeeper_port[10];
   sprintf(str_zookeeper_port, "%d", zookeeper_port);
-  printf("zookeeper information : %s\n", des);
   strcat(des, str_zookeeper_port);
-  char leaderName[] = "leader/";
-  int rc = zoo_acreate(zh, leaderName, "myvalue1", 9, &ZOO_OPEN_ACL_UNSAFE, 0, zktest_string_completion, NULL);
+  printf("zookeeper information : %s\n", des);
+  char leaderName[] = "/leader";
+  zoo_acreate(zh, leaderName, "myvalue1", 9, &ZOO_OPEN_ACL_UNSAFE, 0, zktest_string_completion, NULL);
   char master_znode_base_path[] = "/leader/dmtcp_coord_";
-  rc = zoo_acreate(zh, master_znode_base_path, des, strlen(des),
-  &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, 
-  zktest_string_completion, NULL);
-  if(rc == ZOK){
-      printf("creating a node with my data \n");
-      return 1;
-  }else{
-      fprintf(stderr, "Error in creating znode %d\n", rc);  
-      return 0;
-  }
+  zoo_acreate(zh, master_znode_base_path, des, strlen(des), &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, zktest_string_completion, NULL);
+  // if(rc == ZOK){
+  //     printf("creating a node with my data \n");
+  //     return 1;
+  // }else{
+  //     fprintf(stderr, "Error in creating znode %d\n", rc);  
+  //     return 0;
+  // }
 }
 void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
 {
@@ -272,7 +270,7 @@ void watcher(zhandle_t *zh, int type, int state, const char *path, void* context
 void initZookeeper(){
   printf("*****************************\n");
   printf("Starting zookeeper\n");
-    zh = zookeeper_init("127.0.0.1:2181", watcher, 30000, 0, 0, 0);
+    zh = zookeeper_init("127.0.0.1:2181", NULL, 30000, 0, 0, 0);
     if(!zh){
         printf("error");
         return;
