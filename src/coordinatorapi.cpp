@@ -842,8 +842,8 @@ CoordinatorAPI::connectToNewCoord()
 {
   JTRACE("starting connecting to new coordinator");
   string progname = jalib::Filesystem::GetProgramName();
-  string host = "localhost";
-  int port = 5555;
+  string host(zookeeper_host);
+  int port = zookeeper_port;
   int sockfd = jalib::JClientSocket(host.c_str(), port).sockfd();
   Util::changeFd(sockfd, PROTECTED_COORD_FD);
   

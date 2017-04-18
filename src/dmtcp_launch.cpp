@@ -554,7 +554,7 @@ int main ( int argc, char** argv )
                                                      &compId, &coordInfo,
                                                      &localIPAddr);
   // If port was 0, we'll get new random port when coordinator starts up.
-  Util::getCoordHostAndPort(allowedModes, host, &port);
+  //Util::getCoordHostAndPort(allowedModes, host, &port);
   JTRACE("writing host and port into the file, which are : ")(thePortFile.c_str());
   Util::writeCoordPortToFile(port, thePortFile.c_str());
 
