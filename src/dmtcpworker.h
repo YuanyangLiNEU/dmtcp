@@ -64,12 +64,14 @@ namespace dmtcp
       static void writeCheckpointPrefix(int fd);
 
       static void eventHook(DmtcpEvent_t id, DmtcpEventData_t *data);
+	  static bool isCoordinatorDie;
 
     protected:
       static void sendUserCommand(char c, int* result = NULL);
     private:
       static DmtcpWorker theInstance;
       static bool _exitInProgress;
+	  
   };
 }
 

@@ -57,6 +57,8 @@ static char mycontext[] = "myvalue1";
 static char zookeeper_host[255];
 static int zookeeper_port;
 
+bool CoordinatorAPI::isCoordinatorDie = false;
+
 // leader election algorithm
 void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   char leaderName[30];
@@ -68,6 +70,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   JTRACE("after get children");
   if (children != ZOK) {
     fprintf(stderr,"zoo_get_children failed\n");
+	return ;
   } else {
     fprintf(stderr, "getting the avaliable coordinators\n");
     char next[11];
@@ -93,7 +96,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   strcpy(full_path_name, fullDefaultLeaderPath);
   strcat(full_path_name, leaderName);
   printf("watcher path: %s\n", full_path_name);
-  children = zoo_wget(zh, full_path_name, zookeeper::watcherforwget, mycontext, buffer, &len, &st);
+  children = zoo_wget(zh, full_path_name, NULL, mycontext, buffer, &len, &st);
   buffer[strlen(buffer)] = '\0';
   if (children != ZOK) {
     fprintf(stderr, "error !!!! zoo_wget in leaderElection\n");
@@ -125,6 +128,7 @@ void CoordinatorAPI::initZookeeper(){
 
 void CoordinatorAPI::startZookeeper() {
 	if (_firstZoo) {
+		JTRACE("first time to start zookeeper.");
 		_firstZoo = false;
 		initZookeeper();
 	}
@@ -136,6 +140,7 @@ void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
 {
   printf("get new host and port\n");
   if (_firstZoo) {
+	JTRACE("first time to start zookeeper.");
 	_firstZoo = false;
     initZookeeper();
   }

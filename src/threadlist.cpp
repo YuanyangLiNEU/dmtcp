@@ -358,8 +358,13 @@ static void *checkpointhread (void *dummy)
    * On restart, we arrive back at getcontext, above, and then re-enter the loop.
    */
 
-  CoordinatorAPI::startZookeeper();
   while (1) {
+	CoordinatorAPI::startZookeeper();
+	if (CoordinatorAPI::isCoordinatorDie) {
+		JTRACE("connect to new coordinator.");
+	    CoordinatorAPI::instance().connectToNewCoord();
+		CoordinatorAPI::isCoordinatorDie = false;
+	}
     /* Wait a while between writing checkpoint files */
     JLOG(DMTCP)("before callbackSleepBetweenCheckpoint(0)");
     callbackSleepBetweenCheckpoint(0);

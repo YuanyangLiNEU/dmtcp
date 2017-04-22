@@ -61,6 +61,7 @@ namespace dmtcp
       static void initZookeeper();
       static void getCoordHostAndPortNew(const char **host, int *port);
 	  static void startZookeeper();
+	  static bool isCoordinatorDie;
 
       static CoordinatorAPI& instance();
       static void init();
