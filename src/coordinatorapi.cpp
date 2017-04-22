@@ -201,7 +201,7 @@ namespace zookeeper{
         }
     } else if (type == ZOO_DELETED_EVENT) {
       printf("needing a new leader\n");
-      dmtcp::CoordinatorAPI::leaderElection(zh);
+      //dmtcp::CoordinatorAPI::leaderElection(zh);
 	  //dmtcp::CoordinatorAPI::instance().connectToNewCoord();
     }
 
