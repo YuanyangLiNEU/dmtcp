@@ -441,7 +441,6 @@ void DmtcpWorker::waitForCoordinatorMsg(string msgStr,
 		  CoordinatorAPI::instance().sendMsgToCoordinator(DmtcpMessage(DMT_OK));
 		  return;
 	  }
-
 	}
 	
     if (msg.type == DMT_UPDATE_LOGGING) {
@@ -451,7 +450,7 @@ void DmtcpWorker::waitForCoordinatorMsg(string msgStr,
     }
   } while (1);
 
-  JASSERT(msg.type == type) (msg.type) (type);
+  //JASSERT(msg.type == type) (msg.type) (type);
 
   // Coordinator sends some computation information along with the SUSPEND
   // message. Extracting that.
@@ -491,6 +490,7 @@ void DmtcpWorker::waitForStage1Suspend()
   waitForCoordinatorMsg ("SUSPEND", DMT_DO_SUSPEND);
 
   JLOG(DMTCP)("got SUSPEND message, preparing to acquire all ThreadSync locks");
+  //sleep(4);
   ThreadSync::acquireLocks();
 
   JLOG(DMTCP)("Starting checkpoint, suspending...");
@@ -596,10 +596,4 @@ void DmtcpWorker::eventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
   if (dmtcp_event_hook != NULL) {
     dmtcp_event_hook(event, data);
   }
-}
-
-void DmtcpWorker::startZookpeer()
-{
-  JTRACE("starting the zookeeper instance in Worker process");
-  CoordinatorAPI::instance().initiateZookeeper_includingLE();
 }

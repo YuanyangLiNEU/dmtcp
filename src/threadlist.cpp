@@ -357,8 +357,8 @@ static void *checkpointhread (void *dummy)
   /* This is a sleep-checkpoint-resume loop by the checkpoint thread.
    * On restart, we arrive back at getcontext, above, and then re-enter the loop.
    */
-  DmtcpWorker::startZookpeer(); 
-  JTRACE("startZookpeer() in ThreadList");
+
+  CoordinatorAPI::startZookeeper();
   while (1) {
     /* Wait a while between writing checkpoint files */
     JLOG(DMTCP)("before callbackSleepBetweenCheckpoint(0)");

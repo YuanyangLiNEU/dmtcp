@@ -245,32 +245,14 @@ int create_ephemeral_sequential_node(const char *zookeeper_host, int zookeeper_p
   //     return 0;
   // }
 }
-void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
-{
-  if (type == ZOO_SESSION_EVENT) {
-      if (state == ZOO_CONNECTED_STATE) {
-        printf("********************************\n");
-        printf("ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
-      } else if (state == ZOO_AUTH_FAILED_STATE) {
-        printf("********************************\n");
-        printf("ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
-        zookeeper_close(zh);
-        exit(1);
-      } else if (state == ZOO_EXPIRED_SESSION_STATE) {
-        printf("********************************\n");
-        printf("ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
-        zookeeper_close(zh);
-        exit(1);
-      }
-
-  }
-  printf("watcher called! \n");
+void deleteZooHandle(){
+    zookeeper_close(zh);
 }
 
 void initZookeeper(){
   printf("*****************************\n");
   printf("Starting zookeeper\n");
-    zh = zookeeper_init("127.0.0.1:2181", NULL, 30000, 0, 0, 0);
+    zh = zookeeper_init("127.0.0.1:2181", NULL, 10000, 0, 0, 0);
     if(!zh){
         printf("error");
         return;
@@ -399,6 +381,7 @@ void DmtcpCoordinator::handleUserCommand(char cmd, DmtcpMessage* reply /*= NULL*
     //JNOTE("killing all connected peers and quitting ...");
 	JNOTE("coordinator dies, send coor die msg to all connected peers and quitting ...");
     //broadcastMessage(DMT_KILL_PEER);
+	deleteZooHandle();
 	broadcastMessage(DMT_COORDINATOR_DIE);
     JASSERT_STDERR << "DMTCP coordinator exiting... (per request)\n";
     for (size_t i = 0; i < clients.size(); i++) {
@@ -501,8 +484,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::RUNNING
        && newState == WorkerState::SUSPENDED )
   {
-	JTRACE("sleep 4 seconds after suspended");
-	sleep(4);
+	//JTRACE("sleep 4 seconds after suspended");
+	//sleep(4);
     JNOTE ( "locking all nodes" );
     broadcastMessage(DMT_DO_FD_LEADER_ELECTION, getStatus().numPeers );
   }
@@ -517,8 +500,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::FD_LEADER_ELECTION
        && newState == WorkerState::DRAINED )
   {
-	JTRACE("sleep 4 seconds after drained.");
-	sleep(4);
+	//JTRACE("sleep 4 seconds after drained.");
+	//sleep(4);
     JNOTE ( "checkpointing all nodes" );
     broadcastMessage ( DMT_DO_CHECKPOINT );
   }
@@ -574,8 +557,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::DRAINED
        && newState == WorkerState::CHECKPOINTED )
   {
-	JTRACE("sleep 4 seconds after checkpointed.");
-	sleep(4);
+	//JTRACE("sleep 4 seconds after checkpointed.");
+	//sleep(4);
     RestartScript::writeScript(ckptDir,
                                uniqueCkptFilenames,
                                ckptTimeStamp,
@@ -597,8 +580,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
   if ( oldState == WorkerState::RESTARTING
        && newState == WorkerState::CHECKPOINTED )
   {
-	JTRACE("sleep 4 seconds after checkpointed.");
-	sleep(4);
+	//JTRACE("sleep 4 seconds after checkpointed.");
+	//sleep(4);
     JTIMER_STOP ( restart );
 
     JNOTE ( "refilling all nodes (after checkpoint)" );
@@ -608,8 +591,8 @@ void DmtcpCoordinator::updateMinimumState(WorkerState::eWorkerState oldState)
        && newState == WorkerState::REFILLED )
 #endif
   {
-	JTRACE("sleep 4 seconds after refiled.");
-	sleep(4);
+	//JTRACE("sleep 4 seconds after refiled.");
+	//sleep(4);
     JNOTE ( "restarting all nodes" );
     broadcastMessage ( DMT_DO_RESUME );
 
@@ -1230,6 +1213,8 @@ bool DmtcpCoordinator::startCheckpoint()
     JNOTE("Incremented computationGeneration") (compId.computationGeneration());
     // Pass number of connected peers to all clients
     broadcastMessage(DMT_DO_SUSPEND);
+	//JTRACE("sleep 4 after start checkpoint");
+	//sleep(4);
 
     // Suspend Message has been sent but the workers are still in running
     // state.  If the coordinator receives another checkpoint request from user
@@ -1682,7 +1667,6 @@ int main ( int argc, char** argv )
   initZookeeper();
   const char* hostname = coordHostname.c_str();
   create_ephemeral_sequential_node(hostname, thePort);
-  printf("******************************************\n");
   printf("got hostname : %s\n", hostname);
   printf("got port %d\n", thePort);
 #endif

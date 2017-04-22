@@ -547,9 +547,9 @@ int main ( int argc, char** argv )
   int port = (portStr ? jalib::StringToInt(portStr) : UNINITIALIZED_PORT);
   // Initialize host and port now.  Will be used in low-level functions.
   // Util::getCoordHostAndPort(allowedModes, host, &port);
+  JTRACE("transfering host and port to the zookeeper using getCoordHostAndPortNew()");
   const char* myhost = host.c_str();
   CoordinatorAPI::getCoordHostAndPortNew(&myhost, &port);
-  JTRACE("transfering host and port to the zookeeper using getCoordHostAndPortNew()");
   CoordinatorAPI::instance().connectToCoordOnStartup(allowedModes, argv[0],
                                                      &compId, &coordInfo,
                                                      &localIPAddr);

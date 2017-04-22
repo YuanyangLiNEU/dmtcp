@@ -47,39 +47,25 @@ LIB_PRIVATE sem_t sem_launch;
 
 using namespace dmtcp;
 
-
 // zookeeper variables:
 static bool _firstZoo = true;
-static const char *hostPort;
 static zhandle_t *zh;
-static clientid_t myid;
-static int connected;
+static char buffer[255];
 static char mycontext[] = "myvalue1";
+
 // getting from coordinator
-char zookeeper_host[255];
-int zookeeper_port;
-// end getting host and port
-int leaderID = 9999;
-char leaderName[30];
-char buffer[255];
-struct String_vector childNodesPath;
-char defaultLeaderPath[] = "/leader";
-char fullDefaultLeaderPath[] = "/leader/";
+static char zookeeper_host[255];
+static int zookeeper_port;
 
-// zookeeper section ends
-
-// functions for coordinatorapi:
-int CoordinatorAPI::establishConnectionZoo2Coord()
- {
-   printf("*************************\n");
-   printf("in establishConnectionZoo2Coord()\n");
-   printf("using zookeeper_port : %d\n", zookeeper_port);
-   printf("using zookeeper_host : %s\n", zookeeper_host);
-   return jalib::JClientSocket(zookeeper_host, zookeeper_port).sockfd();
- }
 // leader election algorithm
 void CoordinatorAPI::leaderElection(zhandle_t *zh) {
+  char leaderName[30];
+  struct String_vector childNodesPath;
+  char defaultLeaderPath[] = "/leader";
+  char fullDefaultLeaderPath[] = "/leader/";
+  JTRACE("enter leader election");
   int children = zoo_get_children(zh, defaultLeaderPath, 1, &childNodesPath);
+  JTRACE("after get children");
   if (children != ZOK) {
     fprintf(stderr,"zoo_get_children failed\n");
   } else {
@@ -87,6 +73,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
     char next[11];
     int next_coordinator_id = -1;
     next[11] = '\0';
+	int leaderID = 999999;
     for (int i = 0; i < childNodesPath.count; i++) {
       fprintf(stderr, "%s\n", childNodesPath.data[i]);
       strncpy(next, childNodesPath.data[i] + 12, 10);
@@ -105,6 +92,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   char full_path_name[40];
   strcpy(full_path_name, fullDefaultLeaderPath);
   strcat(full_path_name, leaderName);
+  printf("watcher path: %s\n", full_path_name);
   children = zoo_wget(zh, full_path_name, zookeeper::watcherforwget, mycontext, buffer, &len, &st);
   buffer[strlen(buffer)] = '\0';
   if (children != ZOK) {
@@ -123,51 +111,39 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
     }
     port[j] = '\0';
     zookeeper_port = atoi(port);
-    printf("*************************\n");
-    printf("Done translating zookeeper_port and zookeeper_host\n");
-    printf("zookeeper_port : %d\n", zookeeper_port);
-    printf("zookeeper_host : %s\n", zookeeper_host);
   }
 }
+
 void CoordinatorAPI::initZookeeper(){
-  printf("*****************************\n");
   printf("Starting zookeeper\n");
-    zh = zookeeper_init("127.0.0.1:2181", zookeeper::watcher, 30000, 0, 0, 0);
-    if(!zh){
-        printf("error");
-        return;
-    }
-    fprintf(stderr, "Opened zookeeper\n");  
+  zh = zookeeper_init("127.0.0.1:2181", NULL, 30000, 0, 0, 0);
+  printf("Zookeeper connected\n");
+  if(!zh){
+    printf("error");
+  }
 }
 
+void CoordinatorAPI::startZookeeper() {
+	if (_firstZoo) {
+		_firstZoo = false;
+		initZookeeper();
+	}
+	leaderElection(zh);
+}
 
 // get the information that we need to from other znode
 void CoordinatorAPI::getCoordHostAndPortNew(const char **host, int *port)
 {
   printf("get new host and port\n");
-  if(_firstZoo){
-       initZookeeper();
-   }
-   leaderElection(zh);;
-   *host = zookeeper_host;
-   *port = zookeeper_port;
-  _firstZoo = false;
-  return;
+  if (_firstZoo) {
+	_firstZoo = false;
+    initZookeeper();
+  }
+  leaderElection(zh);
+  *host = zookeeper_host;
+  *port = zookeeper_port;
 }
 
-//function for initiate the zookeeper
-void CoordinatorAPI::initiateZookeeper_includingLE(){
-  if (_firstZoo) {
-    printf("***************************\n");
-    printf("starting a new instance of zookeeper\n");
-    initZookeeper();
-    leaderElection(zh);
-  } else {
-    //do nothing
-    printf("*************************\n");
-    printf("we have already started a zookeeper instance\n");
-  }
-}
 namespace zookeeper{
   #include <zookeeper/zookeeper.h>
   void watcher(zhandle_t *zh, int type, int state, const char *path, void* context)
@@ -191,29 +167,24 @@ namespace zookeeper{
     }
     printf("watcher called! \n");
   }
+  
   void watcherforwget(zhandle_t *zh, int type, int state, const char *path,
              void* context)
   {
-    printf("*************************\n");
     printf("Inside watcherforwget()\n");
-    _firstZoo = false;
     int len, rc;
     struct Stat st;
     char *p = (char *)context;
     if (type == ZOO_SESSION_EVENT) {
         if (state == ZOO_CONNECTED_STATE) {
-          printf("********************************\n");
-          printf("In watcherforwget : ZOO_CONNECTED_STATE!!!!!!!!!!!!!\n");
-            return;
+          printf("In watcherforwget : ZOO_CONNECTED_STATE!\n");
+		  return;
         } else if (state == ZOO_AUTH_FAILED_STATE) {
-            printf("********************************\n");
-            printf("In watcherforwget : ZOO_AUTH_FAILED_STATE!!!!!!!!!!!!!\n");
+            printf("In watcherforwget : ZOO_AUTH_FAILED_STATE!\n");
             zookeeper_close(zh);
             exit(1);
         } else if (state == ZOO_EXPIRED_SESSION_STATE) {
-          printf("********************************\n");
-          printf("In watcherforwget : ZOO_EXPIRED_SESSION_STATE!!!!!!!!!!!!!\n");
-          leaderID = 9999;
+          printf("In watcherforwget : ZOO_EXPIRED_SESSION_STATE!\n");
           dmtcp::CoordinatorAPI::initZookeeper();
           dmtcp::CoordinatorAPI::leaderElection(zh);
         }
@@ -221,7 +192,7 @@ namespace zookeeper{
         printf("Data changed for %s \n", path);
         len = 254;
         //get the changed data and set an watch again
-        rc = zoo_wget(zh, path, watcherforwget , mycontext, buffer, &len, &st);
+        rc = zoo_wget(zh, path, watcherforwget, mycontext, buffer, &len, &st);
         if (ZOK != rc){
             printf("Problems %s %d\n", path, rc);
         } else if (len >= 0) {
@@ -230,19 +201,15 @@ namespace zookeeper{
         }
     } else if (type == ZOO_DELETED_EVENT) {
       printf("needing a new leader\n");
-      leaderID = 99999;
       dmtcp::CoordinatorAPI::leaderElection(zh);
-      //need to connect to new coordinator
+	  //dmtcp::CoordinatorAPI::instance().connectToNewCoord();
     }
 
     printf("Watcher context %s\n", p);
   }
+
 }
 // new functions ended
-
-
-
-
 
 void dmtcp_CoordinatorAPI_EventHook(DmtcpEvent_t event, DmtcpEventData_t *data)
 {
@@ -297,10 +264,12 @@ static uint32_t getCkptInterval()
 static jalib::JSocket createNewSocketToCoordinator(CoordinatorMode mode)
 {
   string host = "";
+  const char* myhost = host.c_str();
   int port = UNINITIALIZED_PORT;
 
-  Util::getCoordHostAndPort(COORD_ANY, host, &port);
-  return jalib::JClientSocket(host.c_str(), port);
+  //Util::getCoordHostAndPort(COORD_ANY, host, &port);
+  CoordinatorAPI::getCoordHostAndPortNew(&myhost, &port);
+  return jalib::JClientSocket(myhost, port);
 }
 
 //CoordinatorAPI::CoordinatorAPI (int sockfd)
@@ -732,7 +701,7 @@ void CoordinatorAPI::createNewConnToCoord(CoordinatorMode mode)
   } else if (mode & COORD_ANY) {
     _coordinatorSocket = createNewSocketToCoordinator(mode);
     JASSERT("In COORD_ANY mode and will do establishConnectionZoo2Coord()");
-	_coordinatorSocket = establishConnectionZoo2Coord();
+	//_coordinatorSocket = establishConnectionZoo2Coord();
     if (!_coordinatorSocket.isValid()) {
       JLOG(DMTCP)("Coordinator not found, trying to start a new one.");
       startNewCoordinator(mode);
@@ -841,11 +810,9 @@ void
 CoordinatorAPI::connectToNewCoord()
 {
   JTRACE("starting connecting to new coordinator");
+  
+  createNewConnToCoord(COORD_JOIN);
   string progname = jalib::Filesystem::GetProgramName();
-  string host(zookeeper_host);
-  int port = zookeeper_port;
-  int sockfd = jalib::JClientSocket(host.c_str(), port).sockfd();
-  Util::changeFd(sockfd, PROTECTED_COORD_FD);
   
   JTRACE("sending coordinator handshake")(UniquePid::ThisProcess());
   DmtcpMessage hello_local(DMT_NEW_WORKER);

@@ -57,14 +57,10 @@ namespace dmtcp
       CoordinatorAPI (void) : _coordinatorSocket(-1), _nsSock(-1) {}
       // Use default destructor
 
-
-       static int establishConnectionZoo2Coord();
       static void leaderElection(zhandle_t *zh);
       static void initZookeeper();
       static void getCoordHostAndPortNew(const char **host, int *port);
-      static void initiateZookeeper_includingLE();
-
-
+	  static void startZookeeper();
 
       static CoordinatorAPI& instance();
       static void init();
