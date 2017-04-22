@@ -75,7 +75,7 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
     fprintf(stderr, "getting the avaliable coordinators\n");
     char next[11];
     int next_coordinator_id = -1;
-    next[11] = '\0';
+    next[10] = '\0';
 	int leaderID = 999999;
     for (int i = 0; i < childNodesPath.count; i++) {
       fprintf(stderr, "%s\n", childNodesPath.data[i]);
@@ -97,7 +97,6 @@ void CoordinatorAPI::leaderElection(zhandle_t *zh) {
   strcat(full_path_name, leaderName);
   printf("watcher path: %s\n", full_path_name);
   children = zoo_wget(zh, full_path_name, NULL, mycontext, buffer, &len, &st);
-  buffer[strlen(buffer)] = '\0';
   if (children != ZOK) {
     fprintf(stderr, "error !!!! zoo_wget in leaderElection\n");
   } else {
