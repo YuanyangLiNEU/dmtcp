@@ -1,0 +1,6 @@
+1. do ./configure
+2. go to src folder
+3. open the newly created Makefile
+4. add -lzookeeper_mt after each -lrt
+5. do make in terminal
+6. done
